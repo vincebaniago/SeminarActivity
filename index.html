@@ -20,6 +20,11 @@
 
     <ul id="guest-list"></ul>
 
-    <script src="script.js"></script>
+    <!-- Modular JS files loaded in dependency order -->
+    <script src="storage-service.js"></script>
+    <script src="entry-validator.js"></script>
+    <script src="ui-renderer.js"></script>
+    <script src="guestbook-app.js"></script>
+    <script src="main.js"></script>
   </body>
 </html>
