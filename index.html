@@ -9,15 +9,14 @@
   <body>
     <h1>Welcome to the Seminar!</h1>
 
-    <form id="entryForm" class="entry-form">
-      <input type="text" id="nameInput" placeholder="Your Name" required />
+    <div class="entry-form">
+      <input type="text" id="nameInput" placeholder="Your Name" />
       <textarea
         id="learnInput"
         placeholder="What is one thing you learned today?"
-        required
       ></textarea>
-      <button type="submit">Sign Guestbook</button>
-    </form>
+      <button onclick="addEntry()">Sign Guestbook</button>
+    </div>
 
     <ul id="guest-list"></ul>
 

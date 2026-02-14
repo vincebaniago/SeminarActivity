@@ -1,12 +1,15 @@
-// GuestbookStorage: Handles all data persistence logic
-class GuestbookStorage {
+// ============================================
+// STORAGE SERVICE - Handles data persistence
+// Single Responsibility: Manage localStorage
+// ============================================
+class StorageService {
   constructor(storageKey = "guestbook_entries") {
     this.storageKey = storageKey;
   }
 
-  save(name, learn) {
-    let entries = this.getAll();
-    entries.push({ name, learn });
+  save(entry) {
+    const entries = this.getAll();
+    entries.push(entry);
     localStorage.setItem(this.storageKey, JSON.stringify(entries));
   }
 
@@ -20,78 +23,99 @@ class GuestbookStorage {
   }
 }
 
-// GuestbookRenderer: Handles all UI rendering logic
-class GuestbookRenderer {
-  constructor(listSelector) {
-    this.list = document.querySelector(listSelector);
+// ============================================
+// VALIDATOR - Handles business logic validation
+// Single Responsibility: Validate entry data
+// ============================================
+class EntryValidator {
+  validate(name, learn) {
+    if (!name || !learn) {
+      throw new Error("Please fill in both fields!");
+    }
+    return { name, learn };
+  }
+}
+
+// ============================================
+// UI RENDERER - Handles DOM manipulation
+// Single Responsibility: Render UI elements
+// ============================================
+class UIRenderer {
+  constructor(listSelector, nameInputSelector, learnInputSelector) {
+    this.listElement = document.querySelector(listSelector);
+    this.nameInput = document.querySelector(nameInputSelector);
+    this.learnInput = document.querySelector(learnInputSelector);
   }
 
   renderEntry(name, learn) {
     const li = document.createElement("li");
     li.className = "guest-entry";
     li.innerHTML = `<div class="guest-info"><strong>${name}</strong><span>Learned: ${learn}</span></div>`;
-    this.list.appendChild(li);
+    this.listElement.appendChild(li);
   }
 
-  clearList() {
-    this.list.innerHTML = "";
+  clearInputs() {
+    this.nameInput.value = "";
+    this.learnInput.value = "";
+  }
+
+  getInputValues() {
+    return {
+      name: this.nameInput.value,
+      learn: this.learnInput.value,
+    };
+  }
+
+  renderAllEntries(entries) {
+    entries.forEach((entry) => this.renderEntry(entry.name, entry.learn));
   }
 }
 
-// GuestbookValidator: Handles all input validation logic
-class GuestbookValidator {
-  static validateEntry(name, learn) {
-    if (!name || !learn) {
-      throw new Error("Please fill in both fields!");
-    }
-    return true;
-  }
-}
-
-// GuestbookManager: Orchestrates the other components (high-level logic)
-class GuestbookManager {
-  constructor(storage, renderer, validator) {
+// ============================================
+// GUESTBOOK APP - Orchestrates all services
+// Single Responsibility: Coordinate components
+// Dependency Inversion: Dependencies injected
+// ============================================
+class GuestbookApp {
+  constructor(validator, storage, renderer) {
+    this.validator = validator;
     this.storage = storage;
     this.renderer = renderer;
-    this.validator = validator;
   }
 
-  addEntry(name, learn) {
-    this.validator.constructor.validateEntry(name, learn);
-    this.storage.save(name, learn);
-    this.renderer.renderEntry(name, learn);
-  }
-
-  loadEntries() {
+  initialize() {
     const entries = this.storage.getAll();
-    entries.forEach((entry) => {
-      this.renderer.renderEntry(entry.name, entry.learn);
-    });
+    this.renderer.renderAllEntries(entries);
+  }
+
+  addEntry() {
+    try {
+      const { name, learn } = this.renderer.getInputValues();
+      const validatedEntry = this.validator.validate(name, learn);
+
+      this.renderer.renderEntry(validatedEntry.name, validatedEntry.learn);
+      this.storage.save(validatedEntry);
+      this.renderer.clearInputs();
+    } catch (error) {
+      alert(error.message);
+    }
   }
 }
 
-// Initialize components with dependency injection
-const storage = new GuestbookStorage();
-const renderer = new GuestbookRenderer("#guest-list");
-const validator = GuestbookValidator;
-const manager = new GuestbookManager(storage, renderer, validator);
+// ============================================
+// INITIALIZATION - Wire up dependencies
+// ============================================
+const validator = new EntryValidator();
+const storage = new StorageService("guestbook_entries");
+const renderer = new UIRenderer("#guest-list", "#nameInput", "#learnInput");
+const app = new GuestbookApp(validator, storage, renderer);
 
-// Load saved entries on page load
-window.addEventListener("load", () => {
-  manager.loadEntries();
+// Initialize on page load
+window.addEventListener("DOMContentLoaded", () => {
+  app.initialize();
 });
 
-// Handle form submission
-document.getElementById("entryForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const nameInput = document.getElementById("nameInput");
-  const learnInput = document.getElementById("learnInput");
-
-  try {
-    manager.addEntry(nameInput.value, learnInput.value);
-    nameInput.value = "";
-    learnInput.value = "";
-  } catch (error) {
-    alert(error.message);
-  }
-});
+// Expose addEntry for onclick handler
+function addEntry() {
+  app.addEntry();
+}
